@@ -1,0 +1,22 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+    
+    joint_velocity_controller:
+      type: velocity_controllers/JointGroupVelocityController
+
+joint_velocity_controller:
+  ros__parameters:
+    joints: 
+      - camera_joint
+    command_interfaces: 
+      - velocity
+    state_interfaces:
+      - velocity
+    pid:
+      p: 1.0
+      i: 0.0
+      d: 0.0

@@ -1,0 +1,217 @@
+<sdf version="1.7">
+  <world name="default">
+
+    <!-- Light and ground -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <!-- ================= MARKER 1 ================= -->
+    <model name="marker1_box">
+      <static>true</static>
+      <pose>2 0 0.1 0 0 0</pose>
+
+      <!-- Grey box -->
+      <link name="box">
+        <visual name="box_visual">
+          <geometry>
+            <box>
+              <size>0.2 0.2 0.02</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+      </link>
+
+      <!-- Marker face -->
+      <link name="marker_face">
+        <pose>0 0 0.011 0 0 0</pose>
+        <visual name="marker_visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.18 0.18</size>
+            </plane>
+          </geometry>
+          <material>
+            <script>
+              <uri>file:///home/med/.gazebo/materials/scripts</uri>
+              <name>Aruco/Marker1</name>
+            </script>
+          </material>
+          <cast_shadows>false</cast_shadows>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ================= MARKER 2 ================= -->
+    <model name="marker2_box">
+      <static>true</static>
+      <pose>0 2 0.1 0 0 1.57</pose>
+
+      <link name="box">
+        <visual name="box_visual">
+          <geometry>
+            <box>
+              <size>0.2 0.2 0.02</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+      </link>
+
+      <link name="marker_face">
+        <pose>0 0 0.011 0 0 0</pose>
+        <visual name="marker_visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.18 0.18</size>
+            </plane>
+          </geometry>
+          <material>
+            <script>
+              <uri>file:///home/med/.gazebo/materials/scripts</uri>
+              <name>Aruco/Marker2</name>
+            </script>
+          </material>
+          <cast_shadows>false</cast_shadows>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ================= MARKER 3 ================= -->
+    <model name="marker3_box">
+      <static>true</static>
+      <pose>-2 0 0.1 0 0 3.14</pose>
+
+      <link name="box">
+        <visual name="box_visual">
+          <geometry>
+            <box>
+              <size>0.2 0.2 0.02</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+      </link>
+
+      <link name="marker_face">
+        <pose>0 0 0.011 0 0 0</pose>
+        <visual name="marker_visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.18 0.18</size>
+            </plane>
+          </geometry>
+          <material>
+            <script>
+              <uri>file:///home/med/.gazebo/materials/scripts</uri>
+              <name>Aruco/Marker3</name>
+            </script>
+          </material>
+          <cast_shadows>false</cast_shadows>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ================= MARKER 4 ================= -->
+    <model name="marker4_box">
+      <static>true</static>
+      <pose>0 -2 0.1 0 0 -1.57</pose>
+
+      <link name="box">
+        <visual name="box_visual">
+          <geometry>
+            <box>
+              <size>0.2 0.2 0.02</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+      </link>
+
+      <link name="marker_face">
+        <pose>0 0 0.011 0 0 0</pose>
+        <visual name="marker_visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.18 0.18</size>
+            </plane>
+          </geometry>
+          <material>
+            <script>
+              <uri>file:///home/med/.gazebo/materials/scripts</uri>
+              <name>Aruco/Marker4</name>
+            </script>
+          </material>
+          <cast_shadows>false</cast_shadows>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ================= MARKER 5 ================= -->
+    <model name="marker5_box">
+      <static>true</static>
+      <pose>1.4 1.4 0.1 0 0 0.78</pose>
+
+      <link name="box">
+        <visual name="box_visual">
+          <geometry>
+            <box>
+              <size>0.2 0.2 0.02</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+      </link>
+
+      <link name="marker_face">
+        <pose>0 0 0.011 0 0 0</pose>
+        <visual name="marker_visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.18 0.18</size>
+            </plane>
+          </geometry>
+          <material>
+            <script>
+              <uri>file:///home/med/.gazebo/materials/scripts</uri>
+              <name>Aruco/Marker5</name>
+            </script>
+          </material>
+          <cast_shadows>false</cast_shadows>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>
+
