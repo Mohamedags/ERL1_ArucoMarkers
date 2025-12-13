@@ -15,24 +15,22 @@ class CmdVelPublisher(Node):
     def __init__(self):
         super().__init__('node_a')
 
-        # Publishers
         self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
         self.image_pub = self.create_publisher(Image, '/results_images', 10)
 
-        # Subscriptions
-        self.create_subscription(ArucoMarkers, '/aruco_markers', self.marker_callback, 10)
-        self.create_subscription(Image, '/camera/image_raw', self.image_callback, 10)
+        self.create_subscription(
+            ArucoMarkers, '/aruco_markers', self.marker_callback, 10
+        )
+        self.create_subscription(
+            Image, '/camera/image_raw', self.image_callback, 10
+        )
 
-        # Timer
         self.timer = self.create_timer(0.1, self.control_loop)
 
-        # State
+        # STATE
+        self.mode = "SCAN"      # SCAN → ALIGN → DONE
         self.detected_ids = set()
-        self.marker_sequence = []
-
-        self.scanning = True
-        self.finished = False
-        self.announced_all_found = False
+        self.target_id = None
 
         self.latest_image = None
         self.bridge = CvBridge()
@@ -42,76 +40,84 @@ class CmdVelPublisher(Node):
     # --------------------------------------------------
 
     def control_loop(self):
-        if self.finished:
-            self.cmd_pub.publish(Twist())
-            return
-
-        if self.scanning:
-            cmd = Twist()
+        cmd = Twist()
+        if self.mode == "SCAN":
             cmd.angular.z = 0.3
-            self.cmd_pub.publish(cmd)
-        else:
-            # After scanning, we just keep the robot stopped for now
-            self.cmd_pub.publish(Twist())
+        self.cmd_pub.publish(cmd)
 
     # --------------------------------------------------
 
     def marker_callback(self, msg: ArucoMarkers):
-        if self.latest_image is None:
+
+        if self.latest_image is None or not msg.marker_ids:
             return
 
-        if not msg.marker_ids:
-            return
-
-        # Store detected IDs
-        for mid in msg.marker_ids:
-            self.detected_ids.add(int(mid))
-
-        # Print scan progress only while scanning
-        if self.scanning:
-            self.get_logger().info(
-                f"Scanning... detected IDs: {sorted(self.detected_ids)} "
-                f"(just saw: {list(msg.marker_ids)})"
-            )
-
-        # Stop scanning ONCE when all markers are found
-        EXPECTED_MARKERS = 5
-        if (
-            self.scanning
-            and not self.announced_all_found
-            and len(self.detected_ids) >= EXPECTED_MARKERS
-        ):
-            self.scanning = False
-            self.announced_all_found = True
-            self.marker_sequence = sorted(self.detected_ids)
-
-            self.cmd_pub.publish(Twist())  # stop robot immediately
-
-            self.get_logger().info(
-                f"ALL markers found! Order: {self.marker_sequence}"
-            )
-            return  # IMPORTANT: stop processing this callback
-
-        # ---------- visualization ----------
-        frame = self.bridge.imgmsg_to_cv2(self.latest_image, desired_encoding='bgr8')
-
+        frame = self.bridge.imgmsg_to_cv2(self.latest_image, 'bgr8')
         h, w, _ = frame.shape
         center = (w // 2, h // 2)
 
-        cv2.circle(frame, center, 80, (0, 0, 255), 5)
-        cv2.putText(
-            frame,
-            "ARUCO DETECTED",
-            (30, 40),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1.0,
-            (0, 0, 255),
-            2
-        )
+        # ================= SCAN =================
+        if self.mode == "SCAN":
+            for mid in msg.marker_ids:
+                self.detected_ids.add(mid)
 
-        out_msg = self.bridge.cv2_to_imgmsg(frame, encoding='bgr8')
-        out_msg.header = self.latest_image.header
-        self.image_pub.publish(out_msg)
+            self.get_logger().info(
+                f"Scanning... detected IDs: {sorted(self.detected_ids)}"
+            )
+
+            # Visual feedback
+            cv2.circle(frame, center, 40, (0, 0, 255), 3)
+            cv2.putText(
+                frame, "SCANNING",
+                (30, 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1.0, (0, 0, 255), 2
+            )
+
+            if len(self.detected_ids) >= 5:
+                self.target_id = min(self.detected_ids)
+                self.mode = "ALIGN"
+                self.cmd_pub.publish(Twist())
+                self.get_logger().info(
+                    f"ALL markers found! Aligning to ID {self.target_id}"
+                )
+
+        # ================= ALIGN =================
+        elif self.mode == "ALIGN":
+
+            if self.target_id not in msg.marker_ids:
+                cmd = Twist()
+                cmd.angular.z = 0.2
+                self.cmd_pub.publish(cmd)
+            else:
+                idx = msg.marker_ids.index(self.target_id)
+                pose = msg.poses[idx]
+
+                error = pose.position.x   # meters
+
+                cmd = Twist()
+                cmd.angular.z = -1.5 * error
+                self.cmd_pub.publish(cmd)
+
+                cv2.circle(frame, center, 50, (0, 255, 0), 4)
+                cv2.putText(
+                    frame,
+                    f"ALIGNING ID {self.target_id}",
+                    (30, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1.0, (0, 255, 0), 2
+                )
+
+                if abs(error) < 0.02:
+                    self.mode = "DONE"
+                    self.cmd_pub.publish(Twist())
+                    self.get_logger().info(
+                        f"Marker {self.target_id} centered. DONE."
+                    )
+
+        out = self.bridge.cv2_to_imgmsg(frame, 'bgr8')
+        out.header = self.latest_image.header
+        self.image_pub.publish(out)
 
     # --------------------------------------------------
 
