@@ -20,12 +20,8 @@ class CmdVelPublisher(Node):
         self.image_pub = self.create_publisher(Image, '/results_images', 10)
 
         # Subscriptions
-        self.create_subscription(
-            ArucoMarkers, '/aruco_markers', self.marker_callback, 10
-        )
-        self.create_subscription(
-            Image, '/camera/image_raw', self.image_callback, 10
-        )
+        self.create_subscription(ArucoMarkers, '/aruco_markers', self.marker_callback, 10)
+        self.create_subscription(Image, '/camera/image_raw', self.image_callback, 10)
 
         # Timer
         self.timer = self.create_timer(0.1, self.control_loop)
@@ -33,8 +29,10 @@ class CmdVelPublisher(Node):
         # State
         self.detected_ids = set()
         self.marker_sequence = []
+
         self.scanning = True
         self.finished = False
+        self.announced_all_found = False
 
         self.latest_image = None
         self.bridge = CvBridge()
@@ -52,11 +50,13 @@ class CmdVelPublisher(Node):
             cmd = Twist()
             cmd.angular.z = 0.3
             self.cmd_pub.publish(cmd)
+        else:
+            # After scanning, we just keep the robot stopped for now
+            self.cmd_pub.publish(Twist())
 
     # --------------------------------------------------
 
     def marker_callback(self, msg: ArucoMarkers):
-
         if self.latest_image is None:
             return
 
@@ -65,29 +65,35 @@ class CmdVelPublisher(Node):
 
         # Store detected IDs
         for mid in msg.marker_ids:
-            self.detected_ids.add(mid)
+            self.detected_ids.add(int(mid))
 
-        self.get_logger().info(
-            f"Scanning... detected IDs: {sorted(self.detected_ids)} "
-            f"(just saw: {list(msg.marker_ids)})"
-        )
+        # Print scan progress only while scanning
+        if self.scanning:
+            self.get_logger().info(
+                f"Scanning... detected IDs: {sorted(self.detected_ids)} "
+                f"(just saw: {list(msg.marker_ids)})"
+            )
 
-        # Stop scanning when all markers are found
+        # Stop scanning ONCE when all markers are found
         EXPECTED_MARKERS = 5
-        if self.scanning and len(self.detected_ids) >= EXPECTED_MARKERS:
+        if (
+            self.scanning
+            and not self.announced_all_found
+            and len(self.detected_ids) >= EXPECTED_MARKERS
+        ):
             self.scanning = False
+            self.announced_all_found = True
             self.marker_sequence = sorted(self.detected_ids)
 
-            self.cmd_pub.publish(Twist())  # stop robot
+            self.cmd_pub.publish(Twist())  # stop robot immediately
 
             self.get_logger().info(
                 f"ALL markers found! Order: {self.marker_sequence}"
             )
+            return  # IMPORTANT: stop processing this callback
 
         # ---------- visualization ----------
-        frame = self.bridge.imgmsg_to_cv2(
-            self.latest_image, desired_encoding='bgr8'
-        )
+        frame = self.bridge.imgmsg_to_cv2(self.latest_image, desired_encoding='bgr8')
 
         h, w, _ = frame.shape
         center = (w // 2, h // 2)
