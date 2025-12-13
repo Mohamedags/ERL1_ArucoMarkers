@@ -31,6 +31,8 @@ class CmdVelPublisher(Node):
         self.timer = self.create_timer(0.1, self.control_loop)
 
         # State
+        self.detected_ids = set()
+        self.marker_sequence = []
         self.scanning = True
         self.finished = False
 
@@ -58,11 +60,31 @@ class CmdVelPublisher(Node):
         if self.latest_image is None:
             return
 
-        if len(msg.marker_ids) == 0:
+        if not msg.marker_ids:
             return
 
-        self.get_logger().info(f"Marker {msg.marker_ids[0]} checked")
+        # Store detected IDs
+        for mid in msg.marker_ids:
+            self.detected_ids.add(mid)
 
+        self.get_logger().info(
+            f"Scanning... detected IDs: {sorted(self.detected_ids)} "
+            f"(just saw: {list(msg.marker_ids)})"
+        )
+
+        # Stop scanning when all markers are found
+        EXPECTED_MARKERS = 5
+        if self.scanning and len(self.detected_ids) >= EXPECTED_MARKERS:
+            self.scanning = False
+            self.marker_sequence = sorted(self.detected_ids)
+
+            self.cmd_pub.publish(Twist())  # stop robot
+
+            self.get_logger().info(
+                f"ALL markers found! Order: {self.marker_sequence}"
+            )
+
+        # ---------- visualization ----------
         frame = self.bridge.imgmsg_to_cv2(
             self.latest_image, desired_encoding='bgr8'
         )
@@ -70,7 +92,6 @@ class CmdVelPublisher(Node):
         h, w, _ = frame.shape
         center = (w // 2, h // 2)
 
-        # Visual confirmation
         cv2.circle(frame, center, 80, (0, 0, 255), 5)
         cv2.putText(
             frame,
