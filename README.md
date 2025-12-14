@@ -34,7 +34,6 @@ The robot repeats this procedure for each remaining marker in ascending ID order
    source install/setup.bash
 
 ## Running
-   ```bash
    ros2 launch robot_urdf gazebo_launch.launch.py
 
 ## Video
